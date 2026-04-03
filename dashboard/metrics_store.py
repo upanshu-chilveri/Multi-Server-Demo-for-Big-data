@@ -2,7 +2,8 @@ from collections import deque
 import time
 
 # How many seconds without a heartbeat before a node is considered offline
-_PEER_TIMEOUT_S = 8
+# Heartbeat listener times out after 4 intervals; 3 misses = 12s total
+_PEER_TIMEOUT_S = 12
 
 def _std_dev(data) -> float:
     """Population standard deviation — used as jitter metric."""
@@ -133,15 +134,15 @@ class MetricsStore:
 
         # B stats — use heartbeat RTT as the best available latency when chunk RTTs are absent
         if self.b_peer_rtts:
-            b_rtt = round(sum(self.b_peer_rtts)/len(self.b_peer_rtts), 1)
-            b_jitter = round(_std_dev(self.b_peer_rtts), 2) if len(self.b_peer_rtts) > 1 else 0.0
+            b_rtt    = round(sum(self.b_peer_rtts)/len(self.b_peer_rtts), 1)
+            b_jitter = round(_std_dev(self.b_peer_rtts), 2) if len(self.b_peer_rtts) > 1 else None
         elif self.b_hb_rtts:
-            b_rtt = round(sum(self.b_hb_rtts)/len(self.b_hb_rtts), 1)
-            b_jitter = round(_std_dev(self.b_hb_rtts), 2) if len(self.b_hb_rtts) > 1 else 0.0
+            b_rtt    = round(sum(self.b_hb_rtts)/len(self.b_hb_rtts), 1)
+            b_jitter = round(_std_dev(self.b_hb_rtts), 2) if len(self.b_hb_rtts) > 1 else None
         else:
-            b_rtt = 0.0
-            b_jitter = 0.0
-        b_hb = round(sum(self.b_hb_rtts)/len(self.b_hb_rtts), 1) if self.b_hb_rtts else 0.0
+            b_rtt    = None
+            b_jitter = None
+        b_hb = round(sum(self.b_hb_rtts)/len(self.b_hb_rtts), 1) if self.b_hb_rtts else None
         # Mark B's peer offline if heartbeat is stale
         if self._b_last_hb > 0 and (now - self._b_last_hb) > _PEER_TIMEOUT_S:
             self.b_peer_alive = False

@@ -4,9 +4,10 @@ from common.packet import pack, unpack, send_framed, recv_framed, F_DATA, F_ACK
 from node.chunk_store import ChunkStore
 
 class PeerServer:
-    def __init__(self, store: ChunkStore, metrics_cb):
+    def __init__(self, store: ChunkStore, metrics_cb, my_role: str = "A"):
         self.store      = store
         self.metrics_cb = metrics_cb
+        self.my_role    = my_role
 
     def start(self):
         threading.Thread(target=self._run, daemon=True).start()
@@ -38,6 +39,7 @@ class PeerServer:
                 response_time_ms = round((time.time() - t_recv) * 1000, 2)
                 self.metrics_cb({
                     "type": "peer_chunk_sent",
+                    "source_node": self.my_role,
                     "chunk_id": cid,
                     "bytes": len(payload),
                     "to": addr[0],

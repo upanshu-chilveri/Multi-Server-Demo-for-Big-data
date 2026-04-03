@@ -5,6 +5,7 @@ from common.packet import pack, unpack, F_HEARTBEAT
 class Heartbeat:
     def __init__(self, my_role: str, metrics_cb):
         # my_role is "A" or "B"
+        self.my_role    = my_role
         self.peer_ip    = NODE_B_IP if my_role == "A" else NODE_A_IP
         self.metrics_cb = metrics_cb
         self.peer_alive = True
@@ -37,8 +38,17 @@ class Heartbeat:
                 rtt   = (time.time() - sent) * 1000
                 missed = 0
                 self.peer_alive = True
-                self.metrics_cb({"type": "heartbeat", "rtt_ms": round(rtt, 2), "peer": addr[0]})
+                self.metrics_cb({
+                    "type": "heartbeat",
+                    "source_node": self.my_role,
+                    "rtt_ms": round(rtt, 2),
+                    "peer": addr[0]
+                })
             except socket.timeout:
                 missed += 1
                 self.peer_alive = missed < 3
-                self.metrics_cb({"type": "heartbeat_miss", "missed": missed})
+                self.metrics_cb({
+                    "type": "heartbeat_miss",
+                    "source_node": self.my_role,
+                    "missed": missed
+                })

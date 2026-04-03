@@ -27,7 +27,7 @@ store.total_chunks = total
 hb        = Heartbeat(role, metrics_cb)
 hb.start()
 
-peer_srv  = PeerServer(store, metrics_cb)
+peer_srv  = PeerServer(store, metrics_cb, role)
 peer_srv.start()
 
 coord     = Coordinator(store, peer_ip, metrics_cb)
