@@ -44,10 +44,15 @@ class MetricsStore:
         self.log.append({**e, "ts": time.time()})
         t = e.get("type")
 
+        # Ensure we have our chunk tracking timestamps safely initialized
+        if not hasattr(self, '_a_last_chunk_ts'): self._a_last_chunk_ts = 0.0
+        if not hasattr(self, '_b_last_chunk_ts'): self._b_last_chunk_ts = 0.0
+
         # NODE A METRICS (Coordinator)
         if source == "A":
             if t == "peer_fetch":
                 self.a_peer_rtts.append(e["rtt_ms"])
+                self._a_last_chunk_ts = now
                 self.a_chunks_fetched += 1
                 if not e.get("crc_ok", True):
                     self.a_crc_fails += 1
@@ -61,6 +66,7 @@ class MetricsStore:
         # NODE B METRICS (Peer Server)
         elif source == "B":
             if t == "peer_chunk_sent":
+                self._b_last_chunk_ts = now
                 self.b_chunks_served += 1
                 # Use the actual measured response_time_ms if provided,
                 # otherwise fall back to recording the chunk size as a proxy.
@@ -101,11 +107,25 @@ class MetricsStore:
 
     def snapshot(self):
         now = time.time()
+        
+        # Clear stale chunk metrics so it falls back to live heartbeats
+        if hasattr(self, '_a_last_chunk_ts') and (now - self._a_last_chunk_ts) > 2.0:
+            self.a_peer_rtts.clear()
+        if hasattr(self, '_b_last_chunk_ts') and (now - self._b_last_chunk_ts) > 2.0:
+            self.b_peer_rtts.clear()
 
-        # A stats
-        a_rtt = round(sum(self.a_peer_rtts)/len(self.a_peer_rtts), 1) if self.a_peer_rtts else 0.0
-        a_jitter = round(_std_dev(self.a_peer_rtts), 2) if len(self.a_peer_rtts) > 1 else 0.0
-        a_hb = round(sum(self.a_hb_rtts)/len(self.a_hb_rtts), 1) if self.a_hb_rtts else 0.0
+        # A stats — prefer chunk RTTs, fall back to heartbeat RTTs
+        if self.a_peer_rtts:
+            a_rtt    = round(sum(self.a_peer_rtts)/len(self.a_peer_rtts), 1)
+            a_jitter = round(_std_dev(self.a_peer_rtts), 2) if len(self.a_peer_rtts) > 1 else None
+        elif self.a_hb_rtts:
+            a_rtt    = round(sum(self.a_hb_rtts)/len(self.a_hb_rtts), 1)
+            a_jitter = round(_std_dev(self.a_hb_rtts), 2) if len(self.a_hb_rtts) > 1 else None
+        else:
+            a_rtt    = None
+            a_jitter = None
+            
+        a_hb = round(sum(self.a_hb_rtts)/len(self.a_hb_rtts), 1) if self.a_hb_rtts else None
         # Mark A's peer offline if heartbeat is stale (even if no explicit miss event)
         if self._a_last_hb > 0 and (now - self._a_last_hb) > _PEER_TIMEOUT_S:
             self.a_peer_alive = False

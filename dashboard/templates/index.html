@@ -1,12 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Live Metrics Dashboard — Distributed DB</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       background: #0f1015;
       color: #e2e2e2;
@@ -22,18 +28,20 @@
       gap: 14px;
       margin-bottom: 28px;
     }
+
     .page-title {
       font-size: 20px;
       font-weight: 500;
       color: #bfa3ff;
       letter-spacing: 0.2px;
     }
+
     .live-badge {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: rgba(107,114,128,0.15);
-      border: 1px solid rgba(107,114,128,0.3);
+      background: rgba(107, 114, 128, 0.15);
+      border: 1px solid rgba(107, 114, 128, 0.3);
       border-radius: 20px;
       padding: 3px 10px;
       font-size: 11px;
@@ -43,27 +51,42 @@
       text-transform: uppercase;
       transition: background 0.4s, border-color 0.4s, color 0.4s;
     }
+
     .live-badge.connected {
-      background: rgba(52,211,153,0.12);
-      border-color: rgba(52,211,153,0.3);
+      background: rgba(52, 211, 153, 0.12);
+      border-color: rgba(52, 211, 153, 0.3);
       color: #34d399;
     }
+
     .live-badge.disconnected {
-      background: rgba(239,68,68,0.12);
-      border-color: rgba(239,68,68,0.3);
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.3);
       color: #ef4444;
     }
+
     .live-badge-dot {
-      width: 6px; height: 6px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: currentColor;
     }
+
     .live-badge.connected .live-badge-dot {
       animation: pulse-dot 1.8s infinite;
     }
+
     @keyframes pulse-dot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50%       { opacity: 0.35; transform: scale(0.65); }
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.35;
+        transform: scale(0.65);
+      }
     }
 
     /* ── Layout ─────────────────────────────────────────────── */
@@ -80,9 +103,22 @@
       padding: 20px;
       position: relative;
     }
-    .panel-a { border: 1px solid rgba(139,92,246,0.3);  box-shadow: inset 0 30px 60px -40px rgba(139,92,246,0.08); }
-    .panel-b { border: 1px solid rgba(20,184,166,0.3);  box-shadow: inset 0 30px 60px -40px rgba(20,184,166,0.08); }
-    .panel-c { grid-column: 1 / -1; border: 1px solid rgba(249,115,22,0.3); box-shadow: inset 0 30px 60px -40px rgba(249,115,22,0.08); }
+
+    .panel-a {
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      box-shadow: inset 0 30px 60px -40px rgba(139, 92, 246, 0.08);
+    }
+
+    .panel-b {
+      border: 1px solid rgba(20, 184, 166, 0.3);
+      box-shadow: inset 0 30px 60px -40px rgba(20, 184, 166, 0.08);
+    }
+
+    .panel-c {
+      grid-column: 1 / -1;
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      box-shadow: inset 0 30px 60px -40px rgba(249, 115, 22, 0.08);
+    }
 
     .panel-title {
       font-size: 11px;
@@ -94,8 +130,19 @@
     }
 
     /* ── Metric grids ───────────────────────────────────────── */
-    .metrics-grid   { display: grid; grid-template-columns: 1fr 1fr;        gap: 12px; margin-bottom: 16px; }
-    .metrics-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metrics-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
 
     .metric-box {
       background: #1b1c25;
@@ -113,12 +160,14 @@
       line-height: 1.1;
       font-variant-numeric: tabular-nums;
     }
+
     .val-unit {
       font-size: 13px;
       font-weight: 400;
       opacity: 0.5;
       margin-left: 2px;
     }
+
     .lbl {
       font-size: 12px;
       color: #44475a;
@@ -126,12 +175,29 @@
     }
 
     /* panel accent colors */
-    .panel-a .val { color: #818cf8; }
-    .panel-b .val { color: #22d3ee; }
-    .val-c1 { color: #60a5fa !important; }
-    .val-c2 { color: #a78bfa !important; }
-    .val-c3 { color: #34d399 !important; }
-    .val-c4 { color: #fb923c !important; }
+    .panel-a .val {
+      color: #818cf8;
+    }
+
+    .panel-b .val {
+      color: #22d3ee;
+    }
+
+    .val-c1 {
+      color: #60a5fa !important;
+    }
+
+    .val-c2 {
+      color: #a78bfa !important;
+    }
+
+    .val-c3 {
+      color: #34d399 !important;
+    }
+
+    .val-c4 {
+      color: #fb923c !important;
+    }
 
     /* ── Status bar ─────────────────────────────────────────── */
     .status-row {
@@ -146,24 +212,46 @@
     }
 
     .status-dot {
-      width: 9px; height: 9px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
       flex-shrink: 0;
       transition: background 0.5s;
     }
-    .status-dot.st-connecting { background: #4b5563; }
-    .status-dot.st-online     { background: #34d399; animation: pulse-dot 2s infinite; }
-    .status-dot.st-offline    { background: #ef4444; }
+
+    .status-dot.st-connecting {
+      background: #4b5563;
+    }
+
+    .status-dot.st-online {
+      background: #34d399;
+      animation: pulse-dot 2s infinite;
+    }
+
+    .status-dot.st-offline {
+      background: #ef4444;
+    }
 
     .status-label {
       font-weight: 600;
       font-size: 12px;
     }
-    .status-label.st-connecting { color: #6b7280; }
-    .status-label.st-online     { color: #34d399; }
-    .status-label.st-offline    { color: #ef4444; }
 
-    .status-peer { color: #44475a; }
+    .status-label.st-connecting {
+      color: #6b7280;
+    }
+
+    .status-label.st-online {
+      color: #34d399;
+    }
+
+    .status-label.st-offline {
+      color: #ef4444;
+    }
+
+    .status-peer {
+      color: #44475a;
+    }
 
     .hb-badge {
       margin-left: auto;
@@ -174,10 +262,15 @@
       padding: 2px 8px;
       border-radius: 4px;
     }
-    .hb-badge.has-value { color: #64748b; }
+
+    .hb-badge.has-value {
+      color: #64748b;
+    }
 
     /* ── Progress ───────────────────────────────────────────── */
-    .progress-wrapper { margin-top: 6px; }
+    .progress-wrapper {
+      margin-top: 6px;
+    }
 
     .no-transfer {
       font-size: 12px;
@@ -194,8 +287,17 @@
       color: #44475a;
       margin-bottom: 8px;
     }
-    .transfer-id  { color: #7dd3fc; font-weight: 500; }
-    .transfer-pct { color: #818cf8; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .transfer-id {
+      color: #7dd3fc;
+      font-weight: 500;
+    }
+
+    .transfer-pct {
+      color: #818cf8;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
 
     .progress-track {
       background: #1b1c25;
@@ -204,6 +306,7 @@
       width: 100%;
       overflow: hidden;
     }
+
     .progress-bar {
       height: 100%;
       background: linear-gradient(90deg, #6366f1, #818cf8);
@@ -213,6 +316,7 @@
     }
   </style>
 </head>
+
 <body>
 
   <div class="page-header">
@@ -321,113 +425,114 @@
 
   </div>
 
-<script>
-  // ── Utility ─────────────────────────────────────────────────
-  function fmt(v, decimals = 2) {
-    if (v === null || v === undefined) return '--';
-    const n = Number(v);
-    return isNaN(n) ? '--' : n.toLocaleString(undefined, { maximumFractionDigits: decimals });
-  }
+  <script>
+    // ── Utility ─────────────────────────────────────────────────
+    function fmt(v, decimals = 2) {
+      if (v === null || v === undefined) return '--';
+      const n = Number(v);
+      return isNaN(n) ? '--' : n.toLocaleString(undefined, { maximumFractionDigits: decimals });
+    }
 
-  function setVal(id, num, unit, decimals = 2) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const display = (num === 0 || num === null) ? '0' : fmt(num, decimals);
-    el.innerHTML = display + (unit ? `<span class="val-unit">${unit}</span>` : '');
-  }
+    function setVal(id, num, unit, decimals = 2) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const display = (num === 0 || num === null) ? '0' : fmt(num, decimals);
+      el.innerHTML = display + (unit ? `<span class="val-unit">${unit}</span>` : '');
+    }
 
-  function setRttVal(id, num, unit) {
-    // Shows '--' when zero/null (no data yet), real value otherwise
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.innerHTML = (num > 0 ? fmt(num) : '--') + `<span class="val-unit">${unit}</span>`;
-  }
+    function setRttVal(id, num, unit) {
+      // Shows '--' when zero/null (no data yet), real value otherwise
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = (num > 0 ? fmt(num) : '--') + `<span class="val-unit">${unit}</span>`;
+    }
 
-  /**
-   * Update the status row for a node.
-   * @param {boolean|null} alive  true=online, false=offline, null=connecting
-   */
-  function updateStatus(dotId, labelId, badgeId, alive, hbRtt) {
-    const dot   = document.getElementById(dotId);
-    const label = document.getElementById(labelId);
-    const badge = document.getElementById(badgeId);
+    /**
+     * Update the status row for a node.
+     * @param {boolean|null} alive  true=online, false=offline, null=connecting
+     */
+    function updateStatus(dotId, labelId, badgeId, alive, hbRtt) {
+      const dot = document.getElementById(dotId);
+      const label = document.getElementById(labelId);
+      const badge = document.getElementById(badgeId);
 
-    let state;
-    if (alive === true)       state = 'online';
-    else if (alive === false) state = 'offline';
-    else                      state = 'connecting';
+      let state;
+      if (alive === true) state = 'online';
+      else if (alive === false) state = 'offline';
+      else state = 'connecting';
 
-    dot.className   = `status-dot st-${state}`;
-    label.className = `status-label st-${state}`;
+      dot.className = `status-dot st-${state}`;
+      label.className = `status-label st-${state}`;
 
-    if (state === 'online') {
-      label.textContent = 'Online';
-      if (hbRtt > 0) {
-        badge.textContent = `HB ${fmt(hbRtt, 1)} ms`;
-        badge.classList.add('has-value');
+      if (state === 'online') {
+        label.textContent = 'Online';
+        if (hbRtt > 0) {
+          badge.textContent = `HB ${fmt(hbRtt, 1)} ms`;
+          badge.classList.add('has-value');
+        } else {
+          badge.textContent = 'HB — ms';
+          badge.classList.remove('has-value');
+        }
+      } else if (state === 'offline') {
+        label.textContent = 'Offline';
+        badge.textContent = 'HB — ms';
+        badge.classList.remove('has-value');
       } else {
+        label.textContent = 'Connecting…';
         badge.textContent = 'HB — ms';
         badge.classList.remove('has-value');
       }
-    } else if (state === 'offline') {
-      label.textContent = 'Offline';
-      badge.textContent = 'HB — ms';
-      badge.classList.remove('has-value');
-    } else {
-      label.textContent = 'Connecting…';
-      badge.textContent = 'HB — ms';
-      badge.classList.remove('has-value');
     }
-  }
 
-  // ── Socket.IO ───────────────────────────────────────────────
-  const ioSocket = io();
-  const liveBadge = document.getElementById('live-badge');
-  const liveTxt   = document.getElementById('live-badge-txt');
+    // ── Socket.IO ───────────────────────────────────────────────
+    const ioSocket = io();
+    const liveBadge = document.getElementById('live-badge');
+    const liveTxt = document.getElementById('live-badge-txt');
 
-  ioSocket.on('connect', () => {
-    liveBadge.className = 'live-badge connected';
-    liveTxt.textContent = 'Live';
-  });
-  ioSocket.on('disconnect', () => {
-    liveBadge.className = 'live-badge disconnected';
-    liveTxt.textContent = 'Disconnected';
-  });
+    ioSocket.on('connect', () => {
+      liveBadge.className = 'live-badge connected';
+      liveTxt.textContent = 'Live';
+    });
+    ioSocket.on('disconnect', () => {
+      liveBadge.className = 'live-badge disconnected';
+      liveTxt.textContent = 'Disconnected';
+    });
 
-  ioSocket.on('m', d => {
-    const na = d.node_a;
-    const nb = d.node_b;
-    const cl = d.clients;
+    ioSocket.on('m', d => {
+      const na = d.node_a;
+      const nb = d.node_b;
+      const cl = d.clients;
 
-    // ── Node A ────────────────────────────────────────────
-    setRttVal('a-rtt',    na.peer_rtt_avg, 'ms');
-    setRttVal('a-jitter', na.jitter,       'ms');
-    document.getElementById('a-chunks').textContent = na.chunks_fetched;
-    document.getElementById('a-crc').textContent    = na.crc_failures;
-    updateStatus('a-dot', 'a-status-label', 'a-hb-badge', na.peer_alive, na.hb_rtt);
+      // ── Node A ────────────────────────────────────────────
+      setRttVal('a-rtt', na.peer_rtt_avg, 'ms');
+      setRttVal('a-jitter', na.jitter, 'ms');
+      document.getElementById('a-chunks').textContent = na.chunks_fetched;
+      document.getElementById('a-crc').textContent = na.crc_failures;
+      updateStatus('a-dot', 'a-status-label', 'a-hb-badge', na.peer_alive, na.hb_rtt);
 
-    // ── Node B ────────────────────────────────────────────
-    setRttVal('b-rtt',    nb.peer_rtt_avg, 'ms');
-    setRttVal('b-jitter', nb.jitter,       'ms');
-    document.getElementById('b-chunks').textContent = nb.chunks_served;
-    document.getElementById('b-crc').textContent    = nb.crc_failures;
-    updateStatus('b-dot', 'b-status-label', 'b-hb-badge', nb.peer_alive, nb.hb_rtt);
+      // ── Node B ────────────────────────────────────────────
+      setRttVal('b-rtt', nb.peer_rtt_avg, 'ms');
+      setRttVal('b-jitter', nb.jitter, 'ms');
+      document.getElementById('b-chunks').textContent = nb.chunks_served;
+      document.getElementById('b-crc').textContent = nb.crc_failures;
+      updateStatus('b-dot', 'b-status-label', 'b-hb-badge', nb.peer_alive, nb.hb_rtt);
 
-    // ── Clients ───────────────────────────────────────────
-    document.getElementById('c-active').textContent = cl.active;
-    document.getElementById('c-served').textContent = cl.total_served;
-    document.getElementById('c-mb').innerHTML   = fmt(cl.mb_transferred) + '<span class="val-unit">MB</span>';
-    document.getElementById('c-time').innerHTML = fmt(cl.avg_serve_time) + '<span class="val-unit">s</span>';
+      // ── Clients ───────────────────────────────────────────
+      document.getElementById('c-active').textContent = cl.active;
+      document.getElementById('c-served').textContent = cl.total_served;
+      document.getElementById('c-mb').innerHTML = fmt(cl.mb_transferred) + '<span class="val-unit">MB</span>';
+      document.getElementById('c-time').innerHTML = fmt(cl.avg_serve_time) + '<span class="val-unit">s</span>';
 
-    const hasTransfer = cl.active > 0 && cl.current_id !== '';
-    document.getElementById('no-transfer').style.display    = hasTransfer ? 'none'  : 'block';
-    document.getElementById('transfer-block').style.display = hasTransfer ? 'block' : 'none';
-    if (hasTransfer) {
-      document.getElementById('c-prog-id').textContent  = cl.current_id;
-      document.getElementById('c-prog-pct').textContent = cl.current_progress + '%';
-      document.getElementById('c-prog-bar').style.width = cl.current_progress + '%';
-    }
-  });
-</script>
+      const hasTransfer = cl.active > 0 && cl.current_id !== '';
+      document.getElementById('no-transfer').style.display = hasTransfer ? 'none' : 'block';
+      document.getElementById('transfer-block').style.display = hasTransfer ? 'block' : 'none';
+      if (hasTransfer) {
+        document.getElementById('c-prog-id').textContent = cl.current_id;
+        document.getElementById('c-prog-pct').textContent = cl.current_progress + '%';
+        document.getElementById('c-prog-bar').style.width = cl.current_progress + '%';
+      }
+    });
+  </script>
 </body>
+
 </html>

@@ -5,7 +5,7 @@ if len(sys.argv) > 1 and sys.argv[1].upper() in ("A", "B"):
     ROLE = sys.argv[1].upper()
 
 NODE_B_IP = "127.0.0.1" 
-NODE_A_IP = "127.0.0.1" 
+NODE_A_IP = "16.16.213.121" 
 
 if ROLE == "A":
     CLIENT_PORT = 9001
@@ -27,5 +27,5 @@ else:
 CHUNK_SIZE    = 512 * 1024   # 512 KB per chunk
 DATA_FILE     = "data/dataset.bin"
 SOCKET_TIMEOUT = 10          # seconds
-HEARTBEAT_INTERVAL = 2       # seconds between UDP pings
+HEARTBEAT_INTERVAL = 1       # seconds between UDP pings
 HEARTBEAT_MISS_LIMIT = 3     # missed pings before peer marked dead
