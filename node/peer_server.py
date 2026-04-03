@@ -25,21 +25,24 @@ class PeerServer:
         conn.settimeout(SOCKET_TIMEOUT)
         try:
             while True:
+                t_recv = time.time()
                 raw = recv_framed(conn)
                 req = unpack(raw)
                 cid = req["chunk_id"]
                 payload = self.store.get(cid)
                 if payload is None:
                     payload = b""   # empty = chunk not here
-                send_ts = time.time()
                 pkt = pack(req["seq"], cid, self.store.total_chunks, payload, F_DATA)
                 send_framed(conn, pkt)
+                # Measure time from receiving request to completing the send
+                response_time_ms = round((time.time() - t_recv) * 1000, 2)
                 self.metrics_cb({
                     "type": "peer_chunk_sent",
                     "chunk_id": cid,
                     "bytes": len(payload),
                     "to": addr[0],
-                    "ts": send_ts
+                    "response_time_ms": response_time_ms,
+                    "ts": t_recv
                 })
         except (ConnectionError, TimeoutError):
             conn.close()

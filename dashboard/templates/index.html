@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Live Metrics Dashboard</title>
+  <title>Live Metrics Dashboard — Distributed DB</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
   <style>
@@ -14,15 +14,59 @@
       padding: 30px 40px;
       min-height: 100vh;
     }
-    
+
+    /* ── Header ─────────────────────────────────────────────── */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
     .page-title {
       font-size: 20px;
       font-weight: 500;
       color: #bfa3ff;
-      margin-bottom: 24px;
       letter-spacing: 0.2px;
     }
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(107,114,128,0.15);
+      border: 1px solid rgba(107,114,128,0.3);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #9ca3af;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      transition: background 0.4s, border-color 0.4s, color 0.4s;
+    }
+    .live-badge.connected {
+      background: rgba(52,211,153,0.12);
+      border-color: rgba(52,211,153,0.3);
+      color: #34d399;
+    }
+    .live-badge.disconnected {
+      background: rgba(239,68,68,0.12);
+      border-color: rgba(239,68,68,0.3);
+      color: #ef4444;
+    }
+    .live-badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .live-badge.connected .live-badge-dot {
+      animation: pulse-dot 1.8s infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.35; transform: scale(0.65); }
+    }
 
+    /* ── Layout ─────────────────────────────────────────────── */
     .main-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -36,140 +80,162 @@
       padding: 20px;
       position: relative;
     }
-
-    /* Gradients/borders for panels */
-    .panel-a {
-      border: 1px solid rgba(139, 92, 246, 0.3);
-      box-shadow: inset 0 30px 60px -40px rgba(139, 92, 246, 0.1);
-    }
-    .panel-b {
-      border: 1px solid rgba(20, 184, 166, 0.3);
-      box-shadow: inset 0 30px 60px -40px rgba(20, 184, 166, 0.1);
-    }
-    .panel-c {
-      grid-column: 1 / -1;
-      border: 1px solid rgba(249, 115, 22, 0.3);
-      box-shadow: inset 0 30px 60px -40px rgba(249, 115, 22, 0.1);
-    }
+    .panel-a { border: 1px solid rgba(139,92,246,0.3);  box-shadow: inset 0 30px 60px -40px rgba(139,92,246,0.08); }
+    .panel-b { border: 1px solid rgba(20,184,166,0.3);  box-shadow: inset 0 30px 60px -40px rgba(20,184,166,0.08); }
+    .panel-c { grid-column: 1 / -1; border: 1px solid rgba(249,115,22,0.3); box-shadow: inset 0 30px 60px -40px rgba(249,115,22,0.08); }
 
     .panel-title {
-      font-size: 13px;
-      font-weight: 500;
-      color: #8b8d98;
+      font-size: 11px;
+      font-weight: 600;
+      color: #4a4c5c;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 16px;
+      letter-spacing: 0.9px;
+      margin-bottom: 18px;
     }
 
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-    
-    .metrics-grid-4 {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 20px;
-    }
+    /* ── Metric grids ───────────────────────────────────────── */
+    .metrics-grid   { display: grid; grid-template-columns: 1fr 1fr;        gap: 12px; margin-bottom: 16px; }
+    .metrics-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
 
     .metric-box {
-      background: #1c1d26;
+      background: #1b1c25;
       border-radius: 8px;
-      padding: 16px 20px;
+      padding: 15px 18px;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      gap: 5px;
     }
 
     .val {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 600;
-      color: #38bdf8;
-      line-height: 1.2;
-      margin-bottom: 4px;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
     }
-    .val.white { color: #f1f5f9; }
-
-    .lbl {
+    .val-unit {
       font-size: 13px;
-      color: #64748b;
+      font-weight: 400;
+      opacity: 0.5;
+      margin-left: 2px;
+    }
+    .lbl {
+      font-size: 12px;
+      color: #44475a;
       font-weight: 400;
     }
 
-    /* Node A specific blue */
-    .panel-a .val { color: #38bdf8; }
-    /* Node B specific cyan */
+    /* panel accent colors */
+    .panel-a .val { color: #818cf8; }
     .panel-b .val { color: #22d3ee; }
-    /* Client specific colors */
     .val-c1 { color: #60a5fa !important; }
-    .val-c2 { color: #3b82f6 !important; }
-    .val-c3 { color: #38bdf8 !important; }
-    .val-c4 { color: #7dd3fc !important; }
+    .val-c2 { color: #a78bfa !important; }
+    .val-c3 { color: #34d399 !important; }
+    .val-c4 { color: #fb923c !important; }
 
+    /* ── Status bar ─────────────────────────────────────────── */
     .status-row {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      color: #8b8d98;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #1b1c25;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #55576a;
     }
 
     .status-dot {
-      width: 10px;
-      height: 10px;
+      width: 9px; height: 9px;
       border-radius: 50%;
-      background: #34d399; /* default alive */
+      flex-shrink: 0;
+      transition: background 0.5s;
     }
-    .status-dot.dead {
-      background: #ef4444;
+    .status-dot.st-connecting { background: #4b5563; }
+    .status-dot.st-online     { background: #34d399; animation: pulse-dot 2s infinite; }
+    .status-dot.st-offline    { background: #ef4444; }
+
+    .status-label {
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .status-label.st-connecting { color: #6b7280; }
+    .status-label.st-online     { color: #34d399; }
+    .status-label.st-offline    { color: #ef4444; }
+
+    .status-peer { color: #44475a; }
+
+    .hb-badge {
+      margin-left: auto;
+      font-size: 11.5px;
+      color: #374151;
+      font-variant-numeric: tabular-nums;
+      background: #12131a;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .hb-badge.has-value { color: #64748b; }
+
+    /* ── Progress ───────────────────────────────────────────── */
+    .progress-wrapper { margin-top: 6px; }
+
+    .no-transfer {
+      font-size: 12px;
+      color: #2d3044;
+      text-align: center;
+      padding: 12px 0;
+      letter-spacing: 0.2px;
     }
 
-    /* Progress Bar */
-    .progress-container {
-      margin-top: 24px;
-      background: #1c1d26;
+    .transfer-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #44475a;
+      margin-bottom: 8px;
+    }
+    .transfer-id  { color: #7dd3fc; font-weight: 500; }
+    .transfer-pct { color: #818cf8; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .progress-track {
+      background: #1b1c25;
       border-radius: 4px;
-      height: 8px;
+      height: 6px;
       width: 100%;
       overflow: hidden;
-      position: relative;
     }
     .progress-bar {
       height: 100%;
-      background: linear-gradient(90deg, #60a5fa, #818cf8);
+      background: linear-gradient(90deg, #6366f1, #818cf8);
       width: 0%;
-      transition: width 0.3s ease;
+      transition: width 0.35s ease;
       border-radius: 4px;
     }
-    .progress-labels {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 8px;
-      font-size: 13px;
-      color: #64748b;
-    }
-
   </style>
 </head>
 <body>
 
-  <div class="page-title">Distributed Database — Live Metrics (both nodes)</div>
+  <div class="page-header">
+    <div class="page-title">Distributed Database — Live Metrics</div>
+    <div class="live-badge" id="live-badge">
+      <div class="live-badge-dot"></div>
+      <span id="live-badge-txt">Connecting</span>
+    </div>
+  </div>
 
   <div class="main-grid">
-    <!-- NODE A -->
+
+    <!-- ── NODE A ─────────────────────────────────────────── -->
     <div class="panel panel-a">
-      <div class="panel-title">NODE A — COORDINATOR & DASHBOARD HOST</div>
+      <div class="panel-title">Node A — Coordinator &amp; Dashboard Host</div>
       <div class="metrics-grid">
         <div class="metric-box">
-          <div class="val" id="a-rtt">--</div>
-          <div class="lbl">Peer RTT avg (ms)</div>
+          <div class="val" id="a-rtt">--<span class="val-unit">ms</span></div>
+          <div class="lbl">Peer RTT avg</div>
         </div>
         <div class="metric-box">
-          <div class="val" id="a-jitter">--</div>
-          <div class="lbl">Jitter (ms)</div>
+          <div class="val" id="a-jitter">--<span class="val-unit">ms</span></div>
+          <div class="lbl">Jitter (σ)</div>
         </div>
         <div class="metric-box">
           <div class="val" id="a-chunks">0</div>
@@ -181,22 +247,24 @@
         </div>
       </div>
       <div class="status-row">
-        <div class="status-dot" id="a-dot"></div>
-        <span id="a-status">Peer (Node B) unknown · Heartbeat RTT -- ms</span>
+        <div class="status-dot st-connecting" id="a-dot"></div>
+        <span class="status-label st-connecting" id="a-status-label">Connecting…</span>
+        <span class="status-peer">· Peer: Node B</span>
+        <span class="hb-badge" id="a-hb-badge">HB — ms</span>
       </div>
     </div>
 
-    <!-- NODE B -->
+    <!-- ── NODE B ─────────────────────────────────────────── -->
     <div class="panel panel-b">
-      <div class="panel-title">NODE B — PEER SERVER · METRICS VIA UDP FORWARD</div>
+      <div class="panel-title">Node B — Peer Server · Metrics via UDP Forward</div>
       <div class="metrics-grid">
         <div class="metric-box">
-          <div class="val" id="b-rtt">--</div>
-          <div class="lbl">Peer RTT avg (ms)</div>
+          <div class="val" id="b-rtt">--<span class="val-unit">ms</span></div>
+          <div class="lbl">Peer RTT avg</div>
         </div>
         <div class="metric-box">
-          <div class="val" id="b-jitter">--</div>
-          <div class="lbl">Jitter (ms)</div>
+          <div class="val" id="b-jitter">--<span class="val-unit">ms</span></div>
+          <div class="lbl">Jitter (σ)</div>
         </div>
         <div class="metric-box">
           <div class="val" id="b-chunks">0</div>
@@ -208,14 +276,16 @@
         </div>
       </div>
       <div class="status-row">
-        <div class="status-dot" id="b-dot"></div>
-        <span id="b-status">Peer (Node A) unknown · Heartbeat RTT -- ms</span>
+        <div class="status-dot st-connecting" id="b-dot"></div>
+        <span class="status-label st-connecting" id="b-status-label">Connecting…</span>
+        <span class="status-peer">· Peer: Node A</span>
+        <span class="hb-badge" id="b-hb-badge">HB — ms</span>
       </div>
     </div>
 
-    <!-- CLIENT SESSIONS -->
+    <!-- ── CLIENT SESSIONS ──────────────────────────────────── -->
     <div class="panel panel-c">
-      <div class="panel-title">CLIENT SESSIONS (ALL ACTIVE CONNECTIONS)</div>
+      <div class="panel-title">Client Sessions — All Active Connections</div>
       <div class="metrics-grid-4">
         <div class="metric-box">
           <div class="val val-c1" id="c-active">0</div>
@@ -226,72 +296,136 @@
           <div class="lbl">Total served</div>
         </div>
         <div class="metric-box">
-          <div class="val val-c3" id="c-mb">0</div>
-          <div class="lbl">MB transferred</div>
+          <div class="val val-c3" id="c-mb">0<span class="val-unit">MB</span></div>
+          <div class="lbl">Transferred</div>
         </div>
         <div class="metric-box">
-          <div class="val val-c4" id="c-time">0</div>
-          <div class="lbl">Avg serve time (s)</div>
+          <div class="val val-c4" id="c-time">0<span class="val-unit">s</span></div>
+          <div class="lbl">Avg serve time</div>
         </div>
       </div>
-      
-      <div class="progress-container">
-        <div class="progress-bar" id="c-prog-bar"></div>
-      </div>
-      <div class="progress-labels">
-        <span id="c-prog-lbl">Current transfer: None</span>
-        <span id="c-prog-pct">0%</span>
+
+      <div class="progress-wrapper">
+        <div class="no-transfer" id="no-transfer">No active transfer</div>
+        <div id="transfer-block" style="display:none">
+          <div class="transfer-header">
+            <span>Transfer: <span class="transfer-id" id="c-prog-id">—</span></span>
+            <span class="transfer-pct" id="c-prog-pct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar" id="c-prog-bar"></div>
+          </div>
+        </div>
       </div>
     </div>
+
   </div>
 
 <script>
+  // ── Utility ─────────────────────────────────────────────────
+  function fmt(v, decimals = 2) {
+    if (v === null || v === undefined) return '--';
+    const n = Number(v);
+    return isNaN(n) ? '--' : n.toLocaleString(undefined, { maximumFractionDigits: decimals });
+  }
+
+  function setVal(id, num, unit, decimals = 2) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const display = (num === 0 || num === null) ? '0' : fmt(num, decimals);
+    el.innerHTML = display + (unit ? `<span class="val-unit">${unit}</span>` : '');
+  }
+
+  function setRttVal(id, num, unit) {
+    // Shows '--' when zero/null (no data yet), real value otherwise
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = (num > 0 ? fmt(num) : '--') + `<span class="val-unit">${unit}</span>`;
+  }
+
+  /**
+   * Update the status row for a node.
+   * @param {boolean|null} alive  true=online, false=offline, null=connecting
+   */
+  function updateStatus(dotId, labelId, badgeId, alive, hbRtt) {
+    const dot   = document.getElementById(dotId);
+    const label = document.getElementById(labelId);
+    const badge = document.getElementById(badgeId);
+
+    let state;
+    if (alive === true)       state = 'online';
+    else if (alive === false) state = 'offline';
+    else                      state = 'connecting';
+
+    dot.className   = `status-dot st-${state}`;
+    label.className = `status-label st-${state}`;
+
+    if (state === 'online') {
+      label.textContent = 'Online';
+      if (hbRtt > 0) {
+        badge.textContent = `HB ${fmt(hbRtt, 1)} ms`;
+        badge.classList.add('has-value');
+      } else {
+        badge.textContent = 'HB — ms';
+        badge.classList.remove('has-value');
+      }
+    } else if (state === 'offline') {
+      label.textContent = 'Offline';
+      badge.textContent = 'HB — ms';
+      badge.classList.remove('has-value');
+    } else {
+      label.textContent = 'Connecting…';
+      badge.textContent = 'HB — ms';
+      badge.classList.remove('has-value');
+    }
+  }
+
+  // ── Socket.IO ───────────────────────────────────────────────
   const ioSocket = io();
-  ioSocket.on("m", d => {
-    // Node A
-    document.getElementById("a-rtt").textContent = d.node_a.peer_rtt_avg;
-    document.getElementById("a-jitter").textContent = d.node_a.jitter;
-    document.getElementById("a-chunks").textContent = d.node_a.chunks_fetched;
-    document.getElementById("a-crc").textContent = d.node_a.crc_failures;
-    
-    const aDot = document.getElementById("a-dot");
-    if (d.node_a.peer_alive) {
-        aDot.className = "status-dot";
-        document.getElementById("a-status").textContent = `Peer (Node B) online · Heartbeat RTT ${d.node_a.hb_rtt} ms`;
-    } else {
-        aDot.className = "status-dot dead";
-        document.getElementById("a-status").textContent = `Peer (Node B) OFFLINE`;
-    }
+  const liveBadge = document.getElementById('live-badge');
+  const liveTxt   = document.getElementById('live-badge-txt');
 
-    // Node B
-    document.getElementById("b-rtt").textContent = d.node_b.peer_rtt_avg;
-    document.getElementById("b-jitter").textContent = d.node_b.jitter;
-    document.getElementById("b-chunks").textContent = d.node_b.chunks_served;
-    document.getElementById("b-crc").textContent = d.node_b.crc_failures;
-    
-    const bDot = document.getElementById("b-dot");
-    if (d.node_b.peer_alive) {
-        bDot.className = "status-dot";
-        document.getElementById("b-status").textContent = `Peer (Node A) online · Heartbeat RTT ${d.node_b.hb_rtt} ms`;
-    } else {
-        bDot.className = "status-dot dead";
-        document.getElementById("b-status").textContent = `Peer (Node A) OFFLINE`;
-    }
+  ioSocket.on('connect', () => {
+    liveBadge.className = 'live-badge connected';
+    liveTxt.textContent = 'Live';
+  });
+  ioSocket.on('disconnect', () => {
+    liveBadge.className = 'live-badge disconnected';
+    liveTxt.textContent = 'Disconnected';
+  });
 
-    // Clients
-    document.getElementById("c-active").textContent = d.clients.active;
-    document.getElementById("c-served").textContent = d.clients.total_served;
-    document.getElementById("c-mb").textContent = d.clients.mb_transferred;
-    document.getElementById("c-time").textContent = d.clients.avg_serve_time;
-    
-    if (d.clients.active > 0 && d.clients.current_id !== "") {
-        document.getElementById("c-prog-lbl").textContent = `Current transfer: ${d.clients.current_id}`;
-        document.getElementById("c-prog-pct").textContent = `${d.clients.current_progress}%`;
-        document.getElementById("c-prog-bar").style.width = `${d.clients.current_progress}%`;
-    } else {
-        document.getElementById("c-prog-lbl").textContent = `Current transfer: None`;
-        document.getElementById("c-prog-pct").textContent = `0%`;
-        document.getElementById("c-prog-bar").style.width = `0%`;
+  ioSocket.on('m', d => {
+    const na = d.node_a;
+    const nb = d.node_b;
+    const cl = d.clients;
+
+    // ── Node A ────────────────────────────────────────────
+    setRttVal('a-rtt',    na.peer_rtt_avg, 'ms');
+    setRttVal('a-jitter', na.jitter,       'ms');
+    document.getElementById('a-chunks').textContent = na.chunks_fetched;
+    document.getElementById('a-crc').textContent    = na.crc_failures;
+    updateStatus('a-dot', 'a-status-label', 'a-hb-badge', na.peer_alive, na.hb_rtt);
+
+    // ── Node B ────────────────────────────────────────────
+    setRttVal('b-rtt',    nb.peer_rtt_avg, 'ms');
+    setRttVal('b-jitter', nb.jitter,       'ms');
+    document.getElementById('b-chunks').textContent = nb.chunks_served;
+    document.getElementById('b-crc').textContent    = nb.crc_failures;
+    updateStatus('b-dot', 'b-status-label', 'b-hb-badge', nb.peer_alive, nb.hb_rtt);
+
+    // ── Clients ───────────────────────────────────────────
+    document.getElementById('c-active').textContent = cl.active;
+    document.getElementById('c-served').textContent = cl.total_served;
+    document.getElementById('c-mb').innerHTML   = fmt(cl.mb_transferred) + '<span class="val-unit">MB</span>';
+    document.getElementById('c-time').innerHTML = fmt(cl.avg_serve_time) + '<span class="val-unit">s</span>';
+
+    const hasTransfer = cl.active > 0 && cl.current_id !== '';
+    document.getElementById('no-transfer').style.display    = hasTransfer ? 'none'  : 'block';
+    document.getElementById('transfer-block').style.display = hasTransfer ? 'block' : 'none';
+    if (hasTransfer) {
+      document.getElementById('c-prog-id').textContent  = cl.current_id;
+      document.getElementById('c-prog-pct').textContent = cl.current_progress + '%';
+      document.getElementById('c-prog-bar').style.width = cl.current_progress + '%';
     }
   });
 </script>
