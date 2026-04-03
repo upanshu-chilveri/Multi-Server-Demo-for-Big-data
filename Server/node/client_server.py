@@ -36,29 +36,33 @@ class ClientServer:
             data   = self.coord.fetch_full_file()
 
             # Stream merged file back to client as framed packets
-            chunk_size = 64 * 1024   # 64 KB send window
-            total_sent = 0
-            seq = 0
-            for i in range(0, len(data), chunk_size):
-                chunk   = data[i:i+chunk_size]
-                is_last = (i + chunk_size >= len(data))
-                flags   = F_FIN if is_last else F_DATA
-                pkt     = pack(seq, 0, 0, chunk, flags)
+            if len(data) == 0:
+                pkt = pack(0, 0, 0, b"", F_FIN)
                 send_framed(conn, pkt)
-                total_sent += len(chunk)
-                seq += 1
-                
-                # Emit progress periodically to avoid flooding
-                if seq % 20 == 0 or is_last:
-                    self.metrics_cb({
-                        "type": "client_progress",
-                        "client_id": client_id,
-                        "bytes_sent": total_sent,
-                        "total_bytes": len(data)
-                    })
+            else:
+                chunk_size = 64 * 1024   # 64 KB send window
+                total_sent = 0
+                seq = 0
+                for i in range(0, len(data), chunk_size):
+                    chunk   = data[i:i+chunk_size]
+                    is_last = (i + chunk_size >= len(data))
+                    flags   = F_FIN if is_last else F_DATA
+                    pkt     = pack(seq, 0, 0, chunk, flags)
+                    send_framed(conn, pkt)
+                    total_sent += len(chunk)
+                    seq += 1
+                    
+                    # Emit progress periodically to avoid flooding
+                    if seq % 20 == 0 or is_last:
+                        self.metrics_cb({
+                            "type": "client_progress",
+                            "client_id": client_id,
+                            "bytes_sent": total_sent,
+                            "total_bytes": len(data)
+                        })
 
             # Calculate total time after the entire file has been transmitted to the client
-            fetch_time = time.time() - t0
+            fetch_time = max(time.time() - t0, 0.001)  # avoid ZeroDivisionError
             throughput = len(data) / fetch_time / 1024
             self.metrics_cb({
                 "type": "client_served",
@@ -70,13 +74,16 @@ class ClientServer:
             })
             print(f"[ClientServer] Sent {total_sent} bytes to {addr} in {fetch_time:.2f}s")
         except (ConnectionError, TimeoutError, OSError) as e:
-            print(f"[ClientServer] Error: {e}")
+            print(f"[ClientServer] Network drop: {e}")
             self.metrics_cb({
                 "type": "tcp_drop",
                 "source_node": "A",
                 "peer": str(addr[0]),
                 "reason": str(e)
             })
+            self.metrics_cb({"type": "client_disconnected", "client_id": client_id})
+        except Exception as e:
+            print(f"[ClientServer] Unexpected error: {e}")
             self.metrics_cb({"type": "client_disconnected", "client_id": client_id})
         finally:
             conn.close()

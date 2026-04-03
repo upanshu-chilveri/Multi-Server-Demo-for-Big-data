@@ -14,9 +14,9 @@ env.bak/
 venv.bak/
 
 # Project Data (Do not upload large datasets to GitHub)
-data/dataset.bin
-data/chunks_A/
-data/chunks_B/
+Server/data/dataset.bin
+Server/data/chunks_A/
+Server/data/chunks_B/
 received_file.bin
 
 # OS generated files

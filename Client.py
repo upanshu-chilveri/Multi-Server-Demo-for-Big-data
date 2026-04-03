@@ -1,6 +1,6 @@
 import socket
-from common.packet import recv_framed, unpack, F_FIN
-from common.config import NODE_A_IP, CLIENT_PORT
+from Server.common.packet import recv_framed, unpack, F_FIN
+from Server.common.config import NODE_A_IP, CLIENT_PORT
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.connect((NODE_A_IP, CLIENT_PORT))
