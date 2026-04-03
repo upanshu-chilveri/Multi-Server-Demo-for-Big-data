@@ -22,8 +22,15 @@ class ClientServer:
             threading.Thread(target=self._handle, args=(conn, addr), daemon=True).start()
 
     def _handle(self, conn, addr):
-        print(f"[ClientServer] Client connected: {addr}")
+        client_id = f"client-{addr[1]}"  # Use port to distinguish clients
+        print(f"[ClientServer] Client connected: {client_id} at {addr}")
         conn.settimeout(SOCKET_TIMEOUT)
+        
+        self.metrics_cb({
+            "type": "client_connected",
+            "client_id": client_id
+        })
+        
         try:
             t0     = time.time()
             data   = self.coord.fetch_full_file()
@@ -41,10 +48,20 @@ class ClientServer:
                 send_framed(conn, pkt)
                 total_sent += len(chunk)
                 seq += 1
+                
+                # Emit progress periodically to avoid flooding
+                if seq % 20 == 0 or is_last:
+                    self.metrics_cb({
+                        "type": "client_progress",
+                        "client_id": client_id,
+                        "bytes_sent": total_sent,
+                        "total_bytes": len(data)
+                    })
 
             throughput = len(data) / fetch_time / 1024
             self.metrics_cb({
                 "type": "client_served",
+                "client_id": client_id,
                 "total_bytes": len(data),
                 "fetch_time_s": round(fetch_time, 3),
                 "throughput_kbps": round(throughput, 1),
@@ -53,5 +70,6 @@ class ClientServer:
             print(f"[ClientServer] Sent {total_sent} bytes to {addr} in {fetch_time:.2f}s")
         except Exception as e:
             print(f"[ClientServer] Error: {e}")
+            self.metrics_cb({"type": "client_disconnected", "client_id": client_id})
         finally:
             conn.close()

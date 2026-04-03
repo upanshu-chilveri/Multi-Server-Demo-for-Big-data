@@ -1,26 +1,29 @@
+# main.py — updated
 import sys, threading
 from common.config import NODE_A_IP, NODE_B_IP
-from node.chunk_store  import ChunkStore
-from node.peer_server  import PeerServer
-from node.coordinator  import Coordinator
+from node.chunk_store   import ChunkStore
+from node.peer_server   import PeerServer
+from node.coordinator   import Coordinator
 from node.client_server import ClientServer
-from node.heartbeat    import Heartbeat
-from dashboard.app     import start_dashboard, metrics_cb
+from node.heartbeat     import Heartbeat
+from node.metrics_forwarder import MetricsForwarder
 
-# Expecting arguments like "main.py A 20"
-try:
-    role = sys.argv[1].upper()   # "A" or "B"
-    total_chunk_count = int(sys.argv[2])
-except (IndexError, ValueError):
-    print("Usage: python3 main.py <A|B> <total_chunks>")
-    sys.exit(1)
-
+role    = sys.argv[1].upper()
+total   = int(sys.argv[2])
 peer_ip = NODE_B_IP if role == "A" else NODE_A_IP
 
-store  = ChunkStore(role)
-store.total_chunks = total_chunk_count   # pass total chunk count at launch
+if role == "A":
+    # Node A runs the dashboard and emits locally
+    from dashboard.app import metrics_cb, start_dashboard
+else:
+    # Node B forwards all events to Node A's dashboard over UDP
+    fwd = MetricsForwarder("B")
+    metrics_cb = fwd.emit
 
-hb     = Heartbeat(role, metrics_cb)
+store = ChunkStore(role)
+store.total_chunks = total
+
+hb        = Heartbeat(role, metrics_cb)
 hb.start()
 
 peer_srv  = PeerServer(store, metrics_cb)
@@ -30,4 +33,10 @@ coord     = Coordinator(store, peer_ip, metrics_cb)
 client_srv = ClientServer(coord, metrics_cb)
 client_srv.start()
 
-start_dashboard()   # blocks - keep last
+if role == "A":
+    start_dashboard()   # blocks — only Node A runs the dashboard
+else:
+    print("[Node B] Running. Metrics forwarding to Node A dashboard.")
+    import time
+    while True:
+        time.sleep(60)

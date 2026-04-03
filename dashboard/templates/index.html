@@ -2,269 +2,296 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Distributed DB Monitor</title>
+  <title>Live Metrics Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: #050508 radial-gradient(circle at 50% 0%, #151025 0%, #050508 60%);
+      background: #0f1015;
       color: #e2e2e2;
       font-family: 'Outfit', sans-serif;
-      padding: 40px;
+      padding: 30px 40px;
       min-height: 100vh;
     }
-    .header {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    h1 {
-      font-size: 32px;
-      font-weight: 700;
-      background: linear-gradient(90deg, #a855f7, #3b82f6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      letter-spacing: -0.5px;
-    }
-    .subtitle {
-      color: #8b8d98;
-      font-size: 14px;
-      margin-top: 8px;
-      font-weight: 400;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 20px;
+    
+    .page-title {
+      font-size: 20px;
+      font-weight: 500;
+      color: #bfa3ff;
       margin-bottom: 24px;
-      max-width: 1200px;
-      margin-left: auto;
-      margin-right: auto;
+      letter-spacing: 0.2px;
     }
-    .card {
-      background: rgba(20, 22, 33, 0.6);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 16px;
-      padding: 24px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .panel {
+      background: #15161c;
+      border-radius: 12px;
+      padding: 20px;
       position: relative;
-      overflow: hidden;
     }
-    .card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(255, 255, 255, 0.15);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+
+    /* Gradients/borders for panels */
+    .panel-a {
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      box-shadow: inset 0 30px 60px -40px rgba(139, 92, 246, 0.1);
     }
-    .stat {
-      font-size: 36px;
-      font-weight: 700;
-      background: linear-gradient(90deg, #38bdf8, #818cf8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 4px;
+    .panel-b {
+      border: 1px solid rgba(20, 184, 166, 0.3);
+      box-shadow: inset 0 30px 60px -40px rgba(20, 184, 166, 0.1);
     }
-    .lbl {
+    .panel-c {
+      grid-column: 1 / -1;
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      box-shadow: inset 0 30px 60px -40px rgba(249, 115, 22, 0.1);
+    }
+
+    .panel-title {
       font-size: 13px;
-      color: #94a3b8;
+      font-weight: 500;
+      color: #8b8d98;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      font-weight: 500;
+      margin-bottom: 16px;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
     }
     
-    /* Status Badge */
-    .status-card {
+    .metrics-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .metric-box {
+      background: #1c1d26;
+      border-radius: 8px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .val {
+      font-size: 28px;
+      font-weight: 600;
+      color: #38bdf8;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+    .val.white { color: #f1f5f9; }
+
+    .lbl {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 400;
+    }
+
+    /* Node A specific blue */
+    .panel-a .val { color: #38bdf8; }
+    /* Node B specific cyan */
+    .panel-b .val { color: #22d3ee; }
+    /* Client specific colors */
+    .val-c1 { color: #60a5fa !important; }
+    .val-c2 { color: #3b82f6 !important; }
+    .val-c3 { color: #38bdf8 !important; }
+    .val-c4 { color: #7dd3fc !important; }
+
+    .status-row {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 12px;
-      grid-column: span 2;
-      background: linear-gradient(145deg, rgba(20, 22, 33, 0.8), rgba(15, 17, 26, 0.9));
+      gap: 8px;
+      font-size: 14px;
+      color: #8b8d98;
     }
-    .dot-container {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .dot {
-      width: 12px;
-      height: 12px;
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
-      z-index: 2;
+      background: #34d399; /* default alive */
     }
-    .pulse {
-      position: absolute;
+    .status-dot.dead {
+      background: #ef4444;
+    }
+
+    /* Progress Bar */
+    .progress-container {
+      margin-top: 24px;
+      background: #1c1d26;
+      border-radius: 4px;
+      height: 8px;
       width: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-bar {
       height: 100%;
-      border-radius: 50%;
-      z-index: 1;
-      animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      background: linear-gradient(90deg, #60a5fa, #818cf8);
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 4px;
     }
-    .alive { background: #34d399; box-shadow: 0 0 10px #34d399; }
-    .alive-pulse { background: rgba(52, 211, 153, 0.4); }
-    
-    .dead { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
-    .dead-pulse { background: rgba(239, 68, 68, 0.4); }
-    
-    @keyframes pulse-ring {
-      0% { transform: scale(0.8); opacity: 0.8; }
-      100% { transform: scale(2.5); opacity: 0; }
+    .progress-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 13px;
+      color: #64748b;
     }
-    #peerStatus {
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-    
-    /* Chart */
-    .wide {
-      grid-column: 1 / -1;
-      padding: 30px;
-    }
-    canvas {
-      width: 100% !important;
-      max-height: 250px;
-      margin-top: 15px;
-    }
+
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <h1>System Telemetry Nexus</h1>
-    <div class="subtitle">Distributed Node Metrics & Live Socket Monitoring</div>
-  </div>
+  <div class="page-title">Distributed Database — Live Metrics (both nodes)</div>
 
-  <div class="grid">
-    <div class="card">
-      <div class="stat" id="peerRtt">--</div>
-      <div class="lbl">Peer-to-Peer RTT (ms)</div>
-    </div>
-    <div class="card">
-      <div class="stat" id="hbRtt" style="background: linear-gradient(90deg, #f472b6, #fb923c); -webkit-background-clip: text;">--</div>
-      <div class="lbl">Heartbeat RTT (ms)</div>
-    </div>
-    <div class="card">
-      <div class="stat" id="chunks" style="background: linear-gradient(90deg, #34d399, #10b981); -webkit-background-clip: text;">0</div>
-      <div class="lbl">Chunks Fetched</div>
-    </div>
-    <div class="card">
-      <div class="stat" id="jitter">--</div>
-      <div class="lbl">Jitter (ms) · CRC Fails: <span id="crc" style="color:#f87171">0</span></div>
-    </div>
-    <div class="card">
-      <div class="stat" id="reqs" style="background: linear-gradient(90deg, #a78bfa, #c084fc); -webkit-background-clip: text;">0</div>
-      <div class="lbl">Client Requests</div>
-    </div>
-    <div class="card">
-      <div class="stat" id="bytes" style="background: linear-gradient(90deg, #fbbf24, #f59e0b); -webkit-background-clip: text;">0 MB</div>
-      <div class="lbl">Total Bandwidth</div>
-    </div>
-    <div class="card status-card">
-      <div class="dot-container">
-         <div class="pulse" id="peerPulse"></div>
-         <div class="dot" id="peerDot"></div>
+  <div class="main-grid">
+    <!-- NODE A -->
+    <div class="panel panel-a">
+      <div class="panel-title">NODE A — COORDINATOR & DASHBOARD HOST</div>
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="val" id="a-rtt">--</div>
+          <div class="lbl">Peer RTT avg (ms)</div>
+        </div>
+        <div class="metric-box">
+          <div class="val" id="a-jitter">--</div>
+          <div class="lbl">Jitter (ms)</div>
+        </div>
+        <div class="metric-box">
+          <div class="val" id="a-chunks">0</div>
+          <div class="lbl">Chunks fetched</div>
+        </div>
+        <div class="metric-box">
+          <div class="val" id="a-crc">0</div>
+          <div class="lbl">CRC failures</div>
+        </div>
       </div>
-      <span id="peerStatus">Awaiting Peer Connection...</span>
+      <div class="status-row">
+        <div class="status-dot" id="a-dot"></div>
+        <span id="a-status">Peer (Node B) unknown · Heartbeat RTT -- ms</span>
+      </div>
     </div>
-    
-    <div class="card wide">
-      <div class="lbl">Network Latency History (RTT)</div>
-      <canvas id="rttChart"></canvas>
+
+    <!-- NODE B -->
+    <div class="panel panel-b">
+      <div class="panel-title">NODE B — PEER SERVER · METRICS VIA UDP FORWARD</div>
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="val" id="b-rtt">--</div>
+          <div class="lbl">Peer RTT avg (ms)</div>
+        </div>
+        <div class="metric-box">
+          <div class="val" id="b-jitter">--</div>
+          <div class="lbl">Jitter (ms)</div>
+        </div>
+        <div class="metric-box">
+          <div class="val" id="b-chunks">0</div>
+          <div class="lbl">Chunks served</div>
+        </div>
+        <div class="metric-box">
+          <div class="val" id="b-crc">0</div>
+          <div class="lbl">CRC failures</div>
+        </div>
+      </div>
+      <div class="status-row">
+        <div class="status-dot" id="b-dot"></div>
+        <span id="b-status">Peer (Node A) unknown · Heartbeat RTT -- ms</span>
+      </div>
+    </div>
+
+    <!-- CLIENT SESSIONS -->
+    <div class="panel panel-c">
+      <div class="panel-title">CLIENT SESSIONS (ALL ACTIVE CONNECTIONS)</div>
+      <div class="metrics-grid-4">
+        <div class="metric-box">
+          <div class="val val-c1" id="c-active">0</div>
+          <div class="lbl">Active clients</div>
+        </div>
+        <div class="metric-box">
+          <div class="val val-c2" id="c-served">0</div>
+          <div class="lbl">Total served</div>
+        </div>
+        <div class="metric-box">
+          <div class="val val-c3" id="c-mb">0</div>
+          <div class="lbl">MB transferred</div>
+        </div>
+        <div class="metric-box">
+          <div class="val val-c4" id="c-time">0</div>
+          <div class="lbl">Avg serve time (s)</div>
+        </div>
+      </div>
+      
+      <div class="progress-container">
+        <div class="progress-bar" id="c-prog-bar"></div>
+      </div>
+      <div class="progress-labels">
+        <span id="c-prog-lbl">Current transfer: None</span>
+        <span id="c-prog-pct">0%</span>
+      </div>
     </div>
   </div>
 
 <script>
-  // Setup Chart with a neon aesthetic
-  const ctx = document.getElementById("rttChart").getContext("2d");
-  
-  // Create gradient for the line chart fill
-  const gradient = ctx.createLinearGradient(0, 0, 0, 250);
-  gradient.addColorStop(0, 'rgba(56, 189, 248, 0.4)');
-  gradient.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
-
-  const chart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [{
-        label: "RTT ms",
-        data: [],
-        borderColor: "#38bdf8",
-        backgroundColor: gradient,
-        borderWidth: 2,
-        tension: 0.4, // Smooth curve
-        pointBackgroundColor: "#0f172a",
-        pointBorderColor: "#38bdf8",
-        pointBorderWidth: 2,
-        pointRadius: 3,
-        pointHoverRadius: 6,
-        fill: true
-      }]
-    },
-    options: {
-      animation: { duration: 0 },
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { display: false },
-        y: { 
-          grid: { color: "rgba(255, 255, 255, 0.05)" },
-          ticks: { color: "#94a3b8", font: { family: "'Outfit', sans-serif" } },
-          border: { display: false }
-        }
-      },
-      plugins: { 
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: 'rgba(15, 23, 42, 0.9)',
-          titleFont: { family: "'Outfit', sans-serif" },
-          bodyFont: { family: "'Outfit', sans-serif" },
-          padding: 10,
-          cornerRadius: 8,
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1
-        }
-      }
-    }
-  });
-
   const ioSocket = io();
   ioSocket.on("m", d => {
-    // Update text content with fallbacks
-    document.getElementById("peerRtt").textContent = d.peer_rtt_avg || '--';
-    document.getElementById("hbRtt").textContent   = d.hb_rtt_avg || '--';
-    document.getElementById("chunks").textContent  = d.chunks_fetched || '0';
-    document.getElementById("jitter").textContent  = d.jitter_ms || '--';
-    document.getElementById("crc").textContent     = d.crc_failures || '0';
-    document.getElementById("reqs").textContent    = d.client_requests || '0';
-    document.getElementById("bytes").textContent   = ((d.bytes_served || 0)/1048576).toFixed(1) + " MB";
+    // Node A
+    document.getElementById("a-rtt").textContent = d.node_a.peer_rtt_avg;
+    document.getElementById("a-jitter").textContent = d.node_a.jitter;
+    document.getElementById("a-chunks").textContent = d.node_a.chunks_fetched;
+    document.getElementById("a-crc").textContent = d.node_a.crc_failures;
     
-    // Status UI Updates
-    const dot = document.getElementById("peerDot");
-    const pulse = document.getElementById("peerPulse");
-    const statusTxt = document.getElementById("peerStatus");
-    
-    if (d.peer_alive) {
-      dot.className = "dot alive";
-      pulse.className = "pulse alive-pulse";
-      statusTxt.textContent = "Peer Node Online & Syncing";
-      statusTxt.style.color = "#34d399";
+    const aDot = document.getElementById("a-dot");
+    if (d.node_a.peer_alive) {
+        aDot.className = "status-dot";
+        document.getElementById("a-status").textContent = `Peer (Node B) online · Heartbeat RTT ${d.node_a.hb_rtt} ms`;
     } else {
-      dot.className = "dot dead";
-      pulse.className = "pulse dead-pulse";
-      statusTxt.textContent = "Peer Node UNREACHABLE";
-      statusTxt.style.color = "#ef4444";
+        aDot.className = "status-dot dead";
+        document.getElementById("a-status").textContent = `Peer (Node B) OFFLINE`;
     }
+
+    // Node B
+    document.getElementById("b-rtt").textContent = d.node_b.peer_rtt_avg;
+    document.getElementById("b-jitter").textContent = d.node_b.jitter;
+    document.getElementById("b-chunks").textContent = d.node_b.chunks_served;
+    document.getElementById("b-crc").textContent = d.node_b.crc_failures;
     
-    // Chart updates
-    if (d.peer_rtt_hist && d.peer_rtt_hist.length > 0) {
-        chart.data.labels = d.peer_rtt_hist.map((_,i) => i);
-        chart.data.datasets[0].data = d.peer_rtt_hist;
-        chart.update('none'); // Update without animation blocking
+    const bDot = document.getElementById("b-dot");
+    if (d.node_b.peer_alive) {
+        bDot.className = "status-dot";
+        document.getElementById("b-status").textContent = `Peer (Node A) online · Heartbeat RTT ${d.node_b.hb_rtt} ms`;
+    } else {
+        bDot.className = "status-dot dead";
+        document.getElementById("b-status").textContent = `Peer (Node A) OFFLINE`;
+    }
+
+    // Clients
+    document.getElementById("c-active").textContent = d.clients.active;
+    document.getElementById("c-served").textContent = d.clients.total_served;
+    document.getElementById("c-mb").textContent = d.clients.mb_transferred;
+    document.getElementById("c-time").textContent = d.clients.avg_serve_time;
+    
+    if (d.clients.active > 0 && d.clients.current_id !== "") {
+        document.getElementById("c-prog-lbl").textContent = `Current transfer: ${d.clients.current_id}`;
+        document.getElementById("c-prog-pct").textContent = `${d.clients.current_progress}%`;
+        document.getElementById("c-prog-bar").style.width = `${d.clients.current_progress}%`;
+    } else {
+        document.getElementById("c-prog-lbl").textContent = `Current transfer: None`;
+        document.getElementById("c-prog-pct").textContent = `0%`;
+        document.getElementById("c-prog-bar").style.width = `0%`;
     }
   });
 </script>
