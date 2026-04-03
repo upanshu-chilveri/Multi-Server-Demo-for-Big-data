@@ -50,7 +50,10 @@ class MetricsStore:
             if t == "peer_chunk_sent":
                 self.b_chunks_served += 1
                 # If we passed response time, we'd record it here. We'll use a placeholder or fake a small delay for demo if missing
-                self.b_peer_rtts.append(11.8) # Using 11.8 as per reference if we lack real rtt on B
+                if "serving_time_ms" in e:
+                    self.b_peer_rtts.append(e["serving_time_ms"])
+                else:
+                    self.b_peer_rtts.append(11.8) # Using 11.8 as per reference if we lack real rtt on B
             elif t == "heartbeat":
                 self.b_hb_rtts.append(e["rtt_ms"])
                 self.b_peer_alive = True

@@ -31,15 +31,17 @@ class PeerServer:
                 payload = self.store.get(cid)
                 if payload is None:
                     payload = b""   # empty = chunk not here
-                send_ts = time.time()
+                t0 = time.time()
                 pkt = pack(req["seq"], cid, self.store.total_chunks, payload, F_DATA)
                 send_framed(conn, pkt)
+                serving_time = time.time() - t0
                 self.metrics_cb({
                     "type": "peer_chunk_sent",
                     "chunk_id": cid,
                     "bytes": len(payload),
                     "to": addr[0],
-                    "ts": send_ts
+                    "serving_time_ms": round(serving_time * 1000, 2),
+                    "ts": time.time()
                 })
         except (ConnectionError, TimeoutError):
             conn.close()
