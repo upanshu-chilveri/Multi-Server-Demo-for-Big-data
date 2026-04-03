@@ -34,7 +34,6 @@ class ClientServer:
         try:
             t0     = time.time()
             data   = self.coord.fetch_full_file()
-            fetch_time = time.time() - t0
 
             # Stream merged file back to client as framed packets
             chunk_size = 64 * 1024   # 64 KB send window
@@ -58,6 +57,8 @@ class ClientServer:
                         "total_bytes": len(data)
                     })
 
+            # Calculate total time after the entire file has been transmitted to the client
+            fetch_time = time.time() - t0
             throughput = len(data) / fetch_time / 1024
             self.metrics_cb({
                 "type": "client_served",
