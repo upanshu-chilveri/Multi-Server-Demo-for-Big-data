@@ -20,7 +20,7 @@ class MetricsStore:
         self.a_hb_rtts    = deque(maxlen=50)
         self.a_chunks_fetched = 0
         self.a_crc_fails  = 0
-        self.a_peer_alive = False
+        self.a_peer_alive = None
         self._a_last_hb   = 0.0   # timestamp of last Node A heartbeat received
 
         # Node B metrics
@@ -28,7 +28,7 @@ class MetricsStore:
         self.b_hb_rtts    = deque(maxlen=50)
         self.b_chunks_served = 0
         self.b_crc_fails  = 0
-        self.b_peer_alive = False
+        self.b_peer_alive = None
         self._b_last_hb   = 0.0   # timestamp of last Node B heartbeat received
 
         # Client Sessions metrics
@@ -43,6 +43,7 @@ class MetricsStore:
         source = e.get("source_node", "A")
         self.log.append({**e, "ts": time.time()})
         t = e.get("type")
+        now = time.time()
 
         # Ensure we have our chunk tracking timestamps safely initialized
         if not hasattr(self, '_a_last_chunk_ts'): self._a_last_chunk_ts = 0.0
