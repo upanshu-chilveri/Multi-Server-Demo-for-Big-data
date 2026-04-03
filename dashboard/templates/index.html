@@ -350,6 +350,16 @@
           <div class="lbl">CRC failures</div>
         </div>
       </div>
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="val" id="a-tcp">0</div>
+          <div class="lbl">TCP drops</div>
+        </div>
+        <div class="metric-box">
+          <div class="val" style="font-size:18px;color:#6b7280" id="a-retries">0</div>
+          <div class="lbl">CRC retries</div>
+        </div>
+      </div>
       <div class="status-row">
         <div class="status-dot st-connecting" id="a-dot"></div>
         <span class="status-label st-connecting" id="a-status-label">Connecting…</span>
@@ -377,6 +387,12 @@
         <div class="metric-box">
           <div class="val" id="b-crc">0</div>
           <div class="lbl">CRC failures</div>
+        </div>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="val" id="b-tcp">0</div>
+          <div class="lbl">TCP drops</div>
         </div>
       </div>
       <div class="status-row">
@@ -507,7 +523,8 @@
       setRttVal('a-rtt', na.peer_rtt_avg, 'ms');
       setRttVal('a-jitter', na.jitter, 'ms');
       document.getElementById('a-chunks').textContent = na.chunks_fetched;
-      document.getElementById('a-crc').textContent = na.crc_failures;
+      document.getElementById('a-crc').textContent    = na.crc_failures;
+      document.getElementById('a-tcp').textContent    = na.tcp_drops;
       // Node A's self_alive = always true (dashboard runs here). peer_alive = A→B link.
       // Show HB badge based on peer_alive so users know if B is reachable from A.
       updateStatus('a-dot', 'a-status-label', 'a-hb-badge', na.self_alive,
@@ -517,7 +534,8 @@
       setRttVal('b-rtt', nb.peer_rtt_avg, 'ms');
       setRttVal('b-jitter', nb.jitter, 'ms');
       document.getElementById('b-chunks').textContent = nb.chunks_served;
-      document.getElementById('b-crc').textContent = nb.crc_failures;
+      document.getElementById('b-crc').textContent    = nb.crc_failures;
+      document.getElementById('b-tcp').textContent    = nb.tcp_drops;
       updateStatus('b-dot', 'b-status-label', 'b-hb-badge', nb.peer_alive, nb.hb_rtt);
 
       // ── Clients ───────────────────────────────────────────

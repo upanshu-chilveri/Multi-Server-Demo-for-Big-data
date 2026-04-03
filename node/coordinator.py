@@ -21,22 +21,44 @@ class Coordinator:
 
         seq = 1000
         for cid in peer_ids:
-            req = pack(seq, cid, 0, b"", F_PEER_REQ)
-            t0  = time.time()
-            send_framed(peer_sock, req)
-            raw = recv_framed(peer_sock)
-            rtt = (time.time() - t0) * 1000
-            pkt = unpack(raw)
+            max_retries = 3
+            for attempt in range(max_retries):
+                req = pack(seq, cid, 0, b"", F_PEER_REQ)
+                t0  = time.time()
+                send_framed(peer_sock, req)
+                raw = recv_framed(peer_sock)
+                rtt = (time.time() - t0) * 1000
+                pkt = unpack(raw)
 
-            all_chunks[pkt["chunk_id"]] = pkt["payload"]
-            self.metrics_cb({
-                "type": "peer_fetch",
-                "chunk_id": pkt["chunk_id"],
-                "bytes": pkt["payload_len"],
-                "rtt_ms": round(rtt, 2),
-                "crc_ok": pkt["crc_ok"],
-                "ts": time.time()
-            })
+                if not pkt["crc_ok"]:
+                    print(f"[Coordinator] CRC FAIL chunk {cid} attempt {attempt+1}/{max_retries}")
+                    self.metrics_cb({
+                        "type": "peer_fetch",
+                        "source_node": "A",
+                        "chunk_id": cid,
+                        "bytes": pkt["payload_len"],
+                        "rtt_ms": round(rtt, 2),
+                        "crc_ok": False,
+                        "ts": time.time()
+                    })
+                    if attempt < max_retries - 1:
+                        continue   # retry
+                    else:
+                        print(f"[Coordinator] Giving up on chunk {cid} after {max_retries} attempts")
+                        break
+
+                # CRC OK — store and move on
+                all_chunks[pkt["chunk_id"]] = pkt["payload"]
+                self.metrics_cb({
+                    "type": "peer_fetch",
+                    "source_node": "A",
+                    "chunk_id": pkt["chunk_id"],
+                    "bytes": pkt["payload_len"],
+                    "rtt_ms": round(rtt, 2),
+                    "crc_ok": True,
+                    "ts": time.time()
+                })
+                break   # success, move to next chunk
             seq += 1
 
         peer_sock.close()

@@ -24,10 +24,13 @@ class PeerServer:
 
     def _handle(self, conn, addr):
         conn.settimeout(SOCKET_TIMEOUT)
+        mid_transfer = False   # True only while actively serving a chunk request
         try:
             while True:
+                mid_transfer = False   # idle, waiting for next request
                 t_recv = time.time()
                 raw = recv_framed(conn)
+                mid_transfer = True    # received a request, now processing
                 req = unpack(raw)
                 cid = req["chunk_id"]
                 payload = self.store.get(cid)
@@ -35,6 +38,7 @@ class PeerServer:
                     payload = b""   # empty = chunk not here
                 pkt = pack(req["seq"], cid, self.store.total_chunks, payload, F_DATA)
                 send_framed(conn, pkt)
+                mid_transfer = False   # successfully sent, back to idle
                 # Measure time from receiving request to completing the send
                 response_time_ms = round((time.time() - t_recv) * 1000, 2)
                 self.metrics_cb({
@@ -46,5 +50,14 @@ class PeerServer:
                     "response_time_ms": response_time_ms,
                     "ts": t_recv
                 })
-        except (ConnectionError, TimeoutError):
+        except (ConnectionError, TimeoutError, OSError) as e:
+            # Only count as a drop if we were actively mid-transfer.
+            # A clean close while idle (peer finished fetching) is normal.
+            if mid_transfer:
+                self.metrics_cb({
+                    "type": "tcp_drop",
+                    "source_node": self.my_role,
+                    "peer": str(addr[0]),
+                    "reason": str(e)
+                })
             conn.close()

@@ -21,6 +21,7 @@ class MetricsStore:
         self.a_hb_rtts    = deque(maxlen=50)
         self.a_chunks_fetched = 0
         self.a_crc_fails  = 0
+        self.a_tcp_drops  = 0
         self.a_peer_alive = None
         self._a_last_hb   = 0.0   # timestamp of last Node A heartbeat received
 
@@ -29,6 +30,7 @@ class MetricsStore:
         self.b_hb_rtts    = deque(maxlen=50)
         self.b_chunks_served = 0
         self.b_crc_fails  = 0
+        self.b_tcp_drops  = 0
         self.b_peer_alive = None
         self._b_last_hb   = 0.0   # timestamp of last Node B heartbeat received
 
@@ -64,6 +66,8 @@ class MetricsStore:
                 self._a_last_hb = time.time()
             elif t == "heartbeat_miss":
                 self.a_peer_alive = e["missed"] < 3
+            elif t == "tcp_drop":
+                self.a_tcp_drops += 1
         
         # NODE B METRICS (Peer Server)
         elif source == "B":
@@ -83,6 +87,8 @@ class MetricsStore:
             elif t == "heartbeat_miss":
                 # Only mark offline if we also haven't heard from B recently
                 self.b_peer_alive = e["missed"] < 3
+            elif t == "tcp_drop":
+                self.b_tcp_drops += 1
                 
         # CLIENT SESSIONS
         if t == "client_connected":
@@ -161,19 +167,21 @@ class MetricsStore:
                 
         return {
             "node_a": {
-                "self_alive": True,           # Node A hosts the dashboard — always up if serving
+                "self_alive": True,
                 "peer_rtt_avg": a_rtt,
                 "jitter": a_jitter,
                 "chunks_fetched": self.a_chunks_fetched,
                 "crc_failures": self.a_crc_fails,
+                "tcp_drops": self.a_tcp_drops,
                 "hb_rtt": a_hb,
-                "peer_alive": self.a_peer_alive  # whether A can hear from B
+                "peer_alive": self.a_peer_alive
             },
             "node_b": {
                 "peer_rtt_avg": b_rtt,
                 "jitter": b_jitter,
                 "chunks_served": self.b_chunks_served,
                 "crc_failures": self.b_crc_fails,
+                "tcp_drops": self.b_tcp_drops,
                 "hb_rtt": b_hb,
                 "peer_alive": self.b_peer_alive
             },

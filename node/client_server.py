@@ -69,8 +69,14 @@ class ClientServer:
                 "client": addr[0]
             })
             print(f"[ClientServer] Sent {total_sent} bytes to {addr} in {fetch_time:.2f}s")
-        except Exception as e:
+        except (ConnectionError, TimeoutError, OSError) as e:
             print(f"[ClientServer] Error: {e}")
+            self.metrics_cb({
+                "type": "tcp_drop",
+                "source_node": "A",
+                "peer": str(addr[0]),
+                "reason": str(e)
+            })
             self.metrics_cb({"type": "client_disconnected", "client_id": client_id})
         finally:
             conn.close()
