@@ -15,11 +15,12 @@ peer_ip = NODE_B_IP if role == "A" else NODE_A_IP
 if role == "A":
     # Node A runs the dashboard and emits locally
     from dashboard.app import metrics_cb, start_dashboard
-else:
+elif role == "B":
     # Node B forwards all events to Node A's dashboard over UDP
     fwd = MetricsForwarder("B")
     metrics_cb = fwd.emit
-
+else:
+    print("Error connecting with server")
 store = ChunkStore(role)
 store.total_chunks = total
 
