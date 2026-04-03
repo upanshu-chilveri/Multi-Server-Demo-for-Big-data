@@ -441,10 +441,10 @@
     }
 
     function setRttVal(id, num, unit) {
-      // Shows '--' when zero/null (no data yet), real value otherwise
+      // Shows '--' only when null/undefined (no data). Shows real value including 0.
       const el = document.getElementById(id);
       if (!el) return;
-      el.innerHTML = (num > 0 ? fmt(num) : '--') + `<span class="val-unit">${unit}</span>`;
+      el.innerHTML = (num !== null && num !== undefined ? fmt(num) : '--') + `<span class="val-unit">${unit}</span>`;
     }
 
     /**
@@ -508,7 +508,10 @@
       setRttVal('a-jitter', na.jitter, 'ms');
       document.getElementById('a-chunks').textContent = na.chunks_fetched;
       document.getElementById('a-crc').textContent = na.crc_failures;
-      updateStatus('a-dot', 'a-status-label', 'a-hb-badge', na.peer_alive, na.hb_rtt);
+      // Node A's self_alive = always true (dashboard runs here). peer_alive = A→B link.
+      // Show HB badge based on peer_alive so users know if B is reachable from A.
+      updateStatus('a-dot', 'a-status-label', 'a-hb-badge', na.self_alive,
+                   na.peer_alive ? na.hb_rtt : null);
 
       // ── Node B ────────────────────────────────────────────
       setRttVal('b-rtt', nb.peer_rtt_avg, 'ms');

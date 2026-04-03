@@ -161,12 +161,13 @@ class MetricsStore:
                 
         return {
             "node_a": {
+                "self_alive": True,           # Node A hosts the dashboard — always up if serving
                 "peer_rtt_avg": a_rtt,
                 "jitter": a_jitter,
                 "chunks_fetched": self.a_chunks_fetched,
                 "crc_failures": self.a_crc_fails,
                 "hb_rtt": a_hb,
-                "peer_alive": self.a_peer_alive
+                "peer_alive": self.a_peer_alive  # whether A can hear from B
             },
             "node_b": {
                 "peer_rtt_avg": b_rtt,

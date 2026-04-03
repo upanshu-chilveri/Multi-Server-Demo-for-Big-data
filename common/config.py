@@ -5,7 +5,7 @@ if len(sys.argv) > 1 and sys.argv[1].upper() in ("A", "B"):
     ROLE = sys.argv[1].upper()
 
 NODE_B_IP = "127.0.0.1" 
-NODE_A_IP = "16.16.213.121" 
+NODE_A_IP = "127.0.0.1" 
 
 if ROLE == "A":
     CLIENT_PORT = 9001
