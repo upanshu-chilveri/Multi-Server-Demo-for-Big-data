@@ -1,4 +1,4 @@
-# Distributed Database Simulator
+![WhatsApp Image 2026-04-04 at 1 36 18 PM](https://github.com/user-attachments/assets/f64efec7-c40d-490e-a7df-2141615c2285)# Distributed Database Simulator
 
 A highly resilient, high-performance distributed database simulator and telemetry system written in Python. This project demonstrates core distributed systems concepts including data chunking, real-time node synchronization, custom TCP/UDP wire protocols, and active telemetry monitoring.
 
@@ -44,6 +44,16 @@ If a node stops querying chunks, RTT stops updating since no data is flowing. To
 
 ## ⚙️ Running the Cluster
 
+### Generate the data
+```bash
+python data/generate.py
+```
+*Generates the data to be retrieved.*
+### Split and distribute the data
+```bash
+python3 -m  data.split_and_distribute
+```
+*Starts the dashboard on `http://localhost:5001` and natively listens for Node B.*
 ### Start Node A (Coordinator & Dashboard)
 ```bash
 python Server/main.py A 100
