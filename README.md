@@ -1,4 +1,4 @@
-![WhatsApp Image 2026-04-04 at 1 36 18 PM](https://github.com/user-attachments/assets/f64efec7-c40d-490e-a7df-2141615c2285)# Distributed Database Simulator
+# Distributed Database Simulator
 
 A highly resilient, high-performance distributed database simulator and telemetry system written in Python. This project demonstrates core distributed systems concepts including data chunking, real-time node synchronization, custom TCP/UDP wire protocols, and active telemetry monitoring.
 
