@@ -53,7 +53,7 @@ python data/generate.py
 ```bash
 python3 -m  data.split_and_distribute
 ```
-*Starts the dashboard on `http://localhost:5001` and natively listens for Node B.*
+*splits the data into chunks and distributes it betweeen nodes*
 ### Start Node A (Coordinator & Dashboard)
 ```bash
 python Server/main.py A 100
