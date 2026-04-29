@@ -42,6 +42,9 @@ If a node stops querying chunks, RTT stops updating since no data is flowing. To
 * `Server/dashboard/`: The Flask & Socket.IO frontend utilized to display telemetry UI templates.
 * `Client.py`: The isolated test client script utilized to execute a stress-test block transfer via TCP.
 
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/8980be77-7977-4755-b00e-7140f836b059" />
+
+
 ## ⚙️ Running the Cluster
 
 ### Generate the data
